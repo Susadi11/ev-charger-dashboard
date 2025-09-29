@@ -79,8 +79,8 @@ const BookingsPage = () => {
                 </div>
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-medium text-slate-600">Total Reservations</p>
-                <p className="text-xs text-slate-500">All time bookings</p>
+                <p className="text-sm font-bold text-slate-700">Total Reservations</p>
+                <p className="text-xs font-medium text-slate-500">All time bookings</p>
               </div>
             </div>
           </div>
@@ -100,8 +100,8 @@ const BookingsPage = () => {
                 </div>
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-medium text-slate-600">Upcoming</p>
-                <p className="text-xs text-slate-500">Scheduled sessions</p>
+                <p className="text-sm font-bold text-slate-700">Upcoming</p>
+                <p className="text-xs font-medium text-slate-500">Scheduled sessions</p>
               </div>
             </div>
           </div>
@@ -121,8 +121,8 @@ const BookingsPage = () => {
                 </div>
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-medium text-slate-600">Completed</p>
-                <p className="text-xs text-slate-500">Finished sessions</p>
+                <p className="text-sm font-bold text-slate-700">Completed</p>
+                <p className="text-xs font-medium text-slate-500">Finished sessions</p>
               </div>
             </div>
           </div>
@@ -142,8 +142,8 @@ const BookingsPage = () => {
                 </div>
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-medium text-slate-600">Cancelled</p>
-                <p className="text-xs text-slate-500">Cancelled bookings</p>
+                <p className="text-sm font-bold text-slate-700">Cancelled</p>
+                <p className="text-xs font-medium text-slate-500">Cancelled bookings</p>
               </div>
             </div>
           </div>
