@@ -7,8 +7,7 @@ import {
   Users,
   UserCheck,
   UserX,
-  Shield,
-  Power
+  Shield
 } from 'lucide-react';
 import Table from '../common/Table';
 import Button from '../common/Button';
@@ -219,6 +218,12 @@ const UserManagement = ({ users: initialUsers, handleEdit, handleDelete }) => {
 
   const iconButtonClass =
     'inline-flex h-9 w-9 items-center justify-center rounded-xl text-gray-400 transition-all duration-200 hover:bg-gray-100';
+  const statusButtonClass = (isActive) =>
+    `inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-xs font-semibold transition-all ${
+      isActive
+        ? 'border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-300 hover:bg-amber-100'
+        : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100'
+    }`;
 
   return (
     <div className="p-6">
@@ -311,14 +316,10 @@ const UserManagement = ({ users: initialUsers, handleEdit, handleDelete }) => {
                 </button>
                 <button
                   onClick={() => handleToggleStatus(row.id)}
-                  className={`${iconButtonClass} ${
-                    row.status === 'active'
-                      ? 'hover:bg-amber-50 hover:text-amber-600'
-                      : 'hover:bg-emerald-50 hover:text-emerald-600'
-                  }`}
+                  className={statusButtonClass(row.status === 'active')}
                   title={row.status === 'active' ? 'Deactivate' : 'Activate'}
                 >
-                  <Power className="h-4 w-4" />
+                  {row.status === 'active' ? 'Deactivate' : 'Activate'}
                 </button>
                 <button
                   onClick={() => handleDeleteUser(row.id)}
