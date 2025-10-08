@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import Modal from '../common/Modal';
 import Button from '../common/Button';
 
+const inputClasses =
+  'w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500/60';
+
 const UserModal = ({ isOpen, onClose, user, onSave }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -51,7 +54,7 @@ const UserModal = ({ isOpen, onClose, user, onSave }) => {
             name="name"
             value={formData.name}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+            className={inputClasses}
             required
           />
         </div>
@@ -63,7 +66,7 @@ const UserModal = ({ isOpen, onClose, user, onSave }) => {
             name="email"
             value={formData.email}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+            className={inputClasses}
             required
           />
         </div>
@@ -74,7 +77,7 @@ const UserModal = ({ isOpen, onClose, user, onSave }) => {
             name="role"
             value={formData.role}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+            className={inputClasses}
           >
             <option value="Admin">Admin</option>
             <option value="Operator">Operator</option>
@@ -88,7 +91,7 @@ const UserModal = ({ isOpen, onClose, user, onSave }) => {
             name="status"
             value={formData.status}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+            className={inputClasses}
           >
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
