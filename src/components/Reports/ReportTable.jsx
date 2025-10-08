@@ -2,7 +2,7 @@ import React from 'react';
 import Table from '../common/Table';
 
 const ReportTable = ({ reportType, data }) => {
-  const getColumns = () => {
+  const columns = () => {
     switch (reportType) {
       case 'revenue':
         return [
@@ -10,10 +10,10 @@ const ReportTable = ({ reportType, data }) => {
           { header: 'Station', accessor: 'station' },
           { header: 'Sessions', accessor: 'sessions' },
           { header: 'Energy (kWh)', accessor: 'energy' },
-          { 
-            header: 'Revenue', 
+          {
+            header: 'Revenue',
             accessor: 'revenue',
-            render: (row) => <span className="font-semibold text-green-600">${row.revenue}</span>
+            render: (row) => <span className="font-semibold text-emerald-600">${row.revenue}</span>
           }
         ];
       case 'stations':
@@ -22,13 +22,17 @@ const ReportTable = ({ reportType, data }) => {
           { header: 'Total Sessions', accessor: 'totalSessions' },
           { header: 'Avg Duration', accessor: 'avgDuration' },
           { header: 'Utilization', accessor: 'utilization' },
-          { 
-            header: 'Status', 
+          {
+            header: 'Status',
             accessor: 'status',
             render: (row) => (
-              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                row.status === 'Good' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-              }`}>
+              <span
+                className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${
+                  row.status === 'Good'
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                    : 'border-amber-200 bg-amber-50 text-amber-700'
+                }`}
+              >
                 {row.status}
               </span>
             )
@@ -48,20 +52,22 @@ const ReportTable = ({ reportType, data }) => {
           { header: 'Total Bookings', accessor: 'totalBookings' },
           { header: 'Confirmed', accessor: 'confirmed' },
           { header: 'Canceled', accessor: 'canceled' },
-          { 
-            header: 'Completion Rate', 
+          {
+            header: 'Completion Rate',
             accessor: 'completionRate',
-            render: (row) => <span className="font-semibold">{row.completionRate}%</span>
+            render: (row) => (
+              <span className="font-semibold text-slate-900">{row.completionRate}%</span>
+            )
           }
         ];
       default:
         return [];
     }
   };
-  
+
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
-      <Table columns={getColumns()} data={data} />
+    <div className="rounded-3xl border border-gray-100 bg-white/80 p-4 shadow-sm backdrop-blur">
+      <Table columns={columns()} data={data} borderless />
     </div>
   );
 };

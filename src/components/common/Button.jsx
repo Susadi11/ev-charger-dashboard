@@ -1,20 +1,37 @@
 import React from 'react';
 
-const Button = ({ children, onClick, variant = 'primary', size = 'md', icon, className = '', disabled = false, type = 'button' }) => {
-  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2';
+const Button = ({
+  children,
+  onClick,
+  variant = 'primary',
+  size = 'md',
+  icon,
+  className = '',
+  disabled = false,
+  type = 'button'
+}) => {
+  const baseClasses =
+    'inline-flex items-center justify-center font-medium rounded-2xl transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900/30 disabled:opacity-40 disabled:cursor-not-allowed gap-2';
   
   const variants = {
-    primary: 'bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-900',
-    secondary: 'bg-white text-gray-900 border border-gray-300 hover:bg-gray-50 focus:ring-gray-500',
-    success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500',
-    danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
-    warning: 'bg-yellow-500 text-white hover:bg-yellow-600 focus:ring-yellow-500'
+    primary:
+      'bg-gray-900 text-white shadow-sm hover:bg-gray-800 hover:shadow-md focus-visible:ring-gray-900/40',
+    secondary:
+      'bg-white text-gray-900 border border-gray-200 shadow-sm hover:border-gray-300 hover:bg-gray-50',
+    success:
+      'bg-emerald-600 text-white shadow-sm hover:bg-emerald-500 focus-visible:ring-emerald-500/40',
+    danger:
+      'bg-rose-600 text-white shadow-sm hover:bg-rose-500 focus-visible:ring-rose-500/40',
+    warning:
+      'bg-amber-500 text-white shadow-sm hover:bg-amber-400 focus-visible:ring-amber-500/40',
+    ghost:
+      'bg-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus-visible:ring-transparent'
   };
   
   const sizes = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2 text-base',
-    lg: 'px-6 py-3 text-lg'
+    sm: 'px-3 py-2 text-sm',
+    md: 'px-4 py-2.5 text-sm',
+    lg: 'px-5 py-3 text-base'
   };
   
   return (
@@ -22,9 +39,9 @@ const Button = ({ children, onClick, variant = 'primary', size = 'md', icon, cla
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
+      className={`${baseClasses} ${variants[variant] || variants.primary} ${sizes[size]} ${className}`}
     >
-      {icon && <span className="mr-2">{icon}</span>}
+      {icon}
       {children}
     </button>
   );
