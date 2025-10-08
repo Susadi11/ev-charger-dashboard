@@ -7,7 +7,9 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  LogOut
+  LogOut,
+  UserCircle,
+  FileText
 } from 'lucide-react';
 
 const navigationItems = [
@@ -34,6 +36,18 @@ const navigationItems = [
     label: 'Bookings',
     icon: Calendar,
     path: '/bookings'
+  },
+  {
+    id: 'users',
+    label: 'Users',
+    icon: UserCircle,
+    path: '/users'
+  },
+  {
+    id: 'reports',
+    label: 'Reports',
+    icon: FileText,
+    path: '/reports'
   },
   {
     id: 'settings',
@@ -70,6 +84,7 @@ const Sidebar = ({
             ${isOpen ? 'translate-x-0' : '-translate-x-full'}
             lg:translate-x-0
             ${isCollapsed ? 'w-16' : 'w-64'}
+            transition-all duration-300
           `}
         >
         <div className="flex flex-col h-full">
@@ -90,7 +105,7 @@ const Sidebar = ({
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-3 py-4 space-y-1">
+          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
             {navigationItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeItem === item.id;
@@ -101,14 +116,16 @@ const Sidebar = ({
                   onClick={() => onItemClick(item.id)}
                   className={`
                     w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium
+                    transition-colors duration-200
                     ${isActive 
-                      ? 'bg-gray-100/80 text-gray-900 shadow-sm' 
+                      ? 'bg-gray-900 text-white shadow-sm' 
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50/80'
                     }
                     ${isCollapsed ? 'justify-center' : 'justify-start'}
                   `}
+                  title={isCollapsed ? item.label : ''}
                 >
-                  <Icon className={`h-5 w-5 flex-shrink-0 ${isActive ? 'text-gray-900' : 'text-gray-500'}`} />
+                  <Icon className={`h-5 w-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-500'}`} />
                   {!isCollapsed && (
                     <span className="truncate">{item.label}</span>
                   )}
@@ -126,8 +143,10 @@ const Sidebar = ({
                 className={`
                   w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium
                   text-red-600 hover:text-red-700 hover:bg-red-50/80
+                  transition-colors duration-200
                   ${isCollapsed ? 'justify-center' : 'justify-start'}
                 `}
+                title={isCollapsed ? 'Logout' : ''}
               >
                 <LogOut className="h-5 w-5 flex-shrink-0" />
                 {!isCollapsed && (
@@ -135,7 +154,6 @@ const Sidebar = ({
                 )}
               </button>
             </div>
-            
           </div>
         </div>
         </aside>

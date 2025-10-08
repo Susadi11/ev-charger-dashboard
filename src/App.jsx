@@ -7,6 +7,9 @@ import DashboardPage from './pages/DashboardPage';
 import BookingsPage from './pages/Bookings/BookingsPage';
 import OwnersPage from './pages/Owners/OwnersPage';
 import StationsPage from './pages/Stations/StationsPage';
+import UsersPage from './pages/Users/UsersPage';
+import SettingsPage from './pages/Settings/SettingsPage';
+import ReportsPage from './pages/Reports/ReportsPage';
 import LoginPage from './components/common/LoginPage';
 import SignUpPage from './components/common/SignUpPage';
 import { SessionProvider } from './context/SessionContext';
@@ -45,7 +48,9 @@ function App() {
   // Navigation handlers
   const handleNavigate = (page) => {
     setCurrentPage(page);
-    if (page === 'dashboard' || page === 'bookings' || page === 'owners' || page === 'stations') {
+    // List of pages that should show sidebar
+    const pagesWithSidebar = ['dashboard', 'bookings', 'owners', 'stations', 'users', 'settings', 'reports'];
+    if (pagesWithSidebar.includes(page)) {
       setShowSidebar(true);
       setActiveItem(page);
     } else {
@@ -125,6 +130,9 @@ function App() {
     setShowSignUp(false);
   };
 
+  // List of pages that should show navbar and sidebar
+  const pagesWithLayout = ['dashboard', 'bookings', 'owners', 'stations', 'users', 'settings', 'reports'];
+
   // Render current page content
   const renderPageContent = () => {
     if (showLogin) {
@@ -156,6 +164,12 @@ function App() {
         return <OwnersPage />;
       case 'stations':
         return <StationsPage />;
+      case 'users':
+        return <UsersPage />;
+      case 'settings':
+        return <SettingsPage />;
+      case 'reports':
+        return <ReportsPage />;
       default:
         return <WelcomePage onNavigate={handleNavigate} onLogin={handleLogin} onSignUp={handleSignUp} />;
     }
@@ -166,7 +180,7 @@ function App() {
       <Router>
         <div className="min-h-screen bg-gray-50/30">
           {/* Show navbar and sidebar on dashboard and other pages */}
-          {(currentPage === 'dashboard' || currentPage === 'bookings' || currentPage === 'owners' || currentPage === 'stations') && (
+          {pagesWithLayout.includes(currentPage) && (
             <>
               <Navbar 
                 isLoggedIn={true}
@@ -193,8 +207,8 @@ function App() {
           
           {/* Main content */}
           <main className={`
-            ${(currentPage === 'dashboard' || currentPage === 'bookings' || currentPage === 'owners' || currentPage === 'stations') && showSidebar ? (sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64') : ''}
-            ${(currentPage === 'dashboard' || currentPage === 'bookings' || currentPage === 'owners' || currentPage === 'stations') ? 'pt-16' : ''}
+            ${pagesWithLayout.includes(currentPage) && showSidebar ? (sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64') : ''}
+            ${pagesWithLayout.includes(currentPage) ? 'pt-16' : ''}
             min-h-screen flex flex-col
           `}>
             {renderPageContent()}
