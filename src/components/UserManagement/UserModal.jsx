@@ -96,19 +96,10 @@ const UserModal = ({ isOpen, onClose, user, onSave }) => {
         </div>
         
         <div className="flex justify-end space-x-3 pt-4">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition"
-          >
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary">
             {user ? 'Update User' : 'Add User'}
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>
