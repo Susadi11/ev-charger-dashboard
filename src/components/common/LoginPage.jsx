@@ -1,21 +1,45 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { loginApi } from "../../api.js";
 
 const LoginPage = ({ onLogin, onSwitchToSignUp }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   setIsLoading(true);
+    
+  //   // Simulate login process
+  //   setTimeout(() => {
+  //     onLogin(email, password);
+  //     setIsLoading(false);
+  //   }, 1000);
+  // };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulate login process
-    setTimeout(() => {
-      onLogin(email, password);
+    setErrorMsg("");
+
+    try {
+      const data = await loginApi({ email, password });
+      // data = { message, user, token }
+      localStorage.setItem("auth_token", data.token);
+      localStorage.setItem("auth_user", JSON.stringify(data.user));
+
+      // If parent needs it:
+      if (typeof onLogin === "function") {
+        onLogin({ user: data.user, token: data.token });
+      }
+    } catch (err) {
+      setErrorMsg(err.message || "Login failed");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
