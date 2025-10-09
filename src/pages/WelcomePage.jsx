@@ -69,7 +69,7 @@ const WelcomePage = ({ onNavigate, onLogin, onSignUp }) => {
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
               <button 
-                onClick={() => onNavigate && onNavigate('dashboard')}
+                onClick={() => onLogin && onLogin()}
                 className="group bg-gray-900 hover:bg-gray-800 text-white font-medium py-4 px-8 rounded-2xl focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 shadow-lg hover:shadow-xl"
               >
                 <span className="flex items-center justify-center gap-2">
