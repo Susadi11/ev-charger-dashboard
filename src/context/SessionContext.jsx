@@ -19,6 +19,10 @@ export const SessionProvider = ({ children }) => {
 
   const logout = () => {
     setUser(null);
+    // Clear all stored authentication data
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("auth_user");
+    localStorage.removeItem("user_nic");
   };
 
   const value = {
