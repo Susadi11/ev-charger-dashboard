@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   Search,
   Plus,
@@ -12,42 +12,50 @@ import {
 import Table from '../common/Table';
 import Button from '../common/Button';
 import OwnerModal from './OwnerModal';
+import {
+  getAllEVOwners,
+  deleteEVOwner,
+  activateEVOwner,
+  deactivateEVOwner
+} from '../../api/evOwnerApi.js';
 
-const defaultOwners = [
-  {
-    id: 1,
-    name: 'Rajesh Kumar',
-    email: 'rajesh@example.com',
-    nic: '912345678V',
-    phone: '+94771234567',
-    status: 'active',
-    joinDate: '2024-01-15'
-  },
-  {
-    id: 2,
-    name: 'Nimal Silva',
-    email: 'nimal@example.com',
-    nic: '901234567V',
-    phone: '+94772345678',
-    status: 'active',
-    joinDate: '2024-02-20'
-  },
-  {
-    id: 3,
-    name: 'Priya Fernando',
-    email: 'priya@example.com',
-    nic: '895678901V',
-    phone: '+94773456789',
-    status: 'inactive',
-    joinDate: '2024-03-10'
-  }
-];
-
-const OwnerManagement = ({ owners: initialOwners, handleEdit, toggleStatus }) => {
-  const [owners, setOwners] = useState(initialOwners || defaultOwners);
+const OwnerManagement = () => {
+  const [owners, setOwners] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedOwner, setSelectedOwner] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch all EV owners on component mount
+  useEffect(() => {
+    fetchOwners();
+  }, []);
+
+  const fetchOwners = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getAllEVOwners();
+      // Transform backend data to match frontend structure
+      const transformedOwners = data.map((owner) => ({
+        id: owner.id,
+        name: owner.name,
+        email: owner.email,
+        nic: owner.nic,
+        phone: owner.phone,
+        vehicleType: owner.vehicleType,
+        status: owner.isActive ? 'active' : 'inactive',
+        joinDate: new Date(owner.createdAt).toISOString().split('T')[0]
+      }));
+      setOwners(transformedOwners);
+    } catch (err) {
+      setError(err.message);
+      console.error('Failed to fetch owners:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const columns = useMemo(
     () => [
@@ -75,6 +83,13 @@ const OwnerManagement = ({ owners: initialOwners, handleEdit, toggleStatus }) =>
         header: 'Phone',
         accessor: 'phone',
         render: (row) => <span className="text-sm text-slate-600">{row.phone}</span>
+      },
+      {
+        header: 'Vehicle Type',
+        accessor: 'vehicleType',
+        render: (row) => (
+          <span className="text-sm text-slate-600">{row.vehicleType || 'N/A'}</span>
+        )
       },
       {
         header: 'Status',
@@ -105,7 +120,8 @@ const OwnerManagement = ({ owners: initialOwners, handleEdit, toggleStatus }) =>
       owners.filter(
         (owner) =>
           owner.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          owner.email.toLowerCase().includes(searchTerm.toLowerCase())
+          owner.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          owner.nic.toLowerCase().includes(searchTerm.toLowerCase())
       ),
     [owners, searchTerm]
   );
@@ -146,48 +162,37 @@ const OwnerManagement = ({ owners: initialOwners, handleEdit, toggleStatus }) =>
     [owners.length, activeOwners, inactiveOwners]
   );
 
-  const handleToggleStatus = (ownerId) => {
-    setOwners((prev) =>
-      prev.map((owner) =>
-        owner.id === ownerId
-          ? { ...owner, status: owner.status === 'active' ? 'inactive' : 'active' }
-          : owner
-      )
-    );
-    toggleStatus && toggleStatus(ownerId);
-  };
-
-  const handleDeleteOwner = (ownerId) => {
-    if (window.confirm('Are you sure you want to delete this owner?')) {
-      setOwners((prev) => prev.filter((owner) => owner.id !== ownerId));
+  const handleToggleStatus = async (owner) => {
+    try {
+      if (owner.status === 'active') {
+        await deactivateEVOwner(owner.nic);
+      } else {
+        await activateEVOwner(owner.nic);
+      }
+      // Refresh the list after status change
+      await fetchOwners();
+    } catch (err) {
+      alert(`Failed to ${owner.status === 'active' ? 'deactivate' : 'activate'} owner: ${err.message}`);
+      console.error('Toggle status error:', err);
     }
   };
 
-  const handleSaveOwner = (ownerData) => {
-    if (selectedOwner) {
-      setOwners((prev) =>
-        prev.map((owner) =>
-          owner.id === selectedOwner.id
-            ? {
-                ...ownerData,
-                id: selectedOwner.id,
-                joinDate: selectedOwner.joinDate
-              }
-            : owner
-        )
-      );
-      handleEdit && handleEdit(ownerData);
-    } else {
-      setOwners((prev) => [
-        ...prev,
-        {
-          ...ownerData,
-          id: Date.now(),
-          status: 'active',
-          joinDate: new Date().toISOString().split('T')[0]
-        }
-      ]);
+  const handleDeleteOwner = async (owner) => {
+    if (window.confirm(`Are you sure you want to permanently delete ${owner.name}? This action cannot be undone.`)) {
+      try {
+        await deleteEVOwner(owner.nic);
+        // Refresh the list after deletion
+        await fetchOwners();
+      } catch (err) {
+        alert(`Failed to delete owner: ${err.message}`);
+        console.error('Delete error:', err);
+      }
     }
+  };
+
+  const handleSaveOwner = async (ownerData) => {
+    // Refresh the owner list after save
+    await fetchOwners();
     setIsModalOpen(false);
     setSelectedOwner(null);
   };
@@ -200,6 +205,30 @@ const OwnerManagement = ({ owners: initialOwners, handleEdit, toggleStatus }) =>
         ? 'border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-300 hover:bg-amber-100'
         : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100'
     }`;
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-500 border-t-transparent mx-auto"></div>
+          <p className="mt-4 text-slate-600">Loading owners...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600">Error: {error}</p>
+          <Button onClick={fetchOwners} className="mt-4">
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -267,7 +296,7 @@ const OwnerManagement = ({ owners: initialOwners, handleEdit, toggleStatus }) =>
               <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search owners..."
+                placeholder="Search owners by name, email, or NIC..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full rounded-2xl border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm text-slate-700 shadow-sm transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500/60"
@@ -291,14 +320,14 @@ const OwnerManagement = ({ owners: initialOwners, handleEdit, toggleStatus }) =>
                   <Edit2 className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => handleToggleStatus(row.id)}
+                  onClick={() => handleToggleStatus(row)}
                   className={statusButtonClass(row.status === 'active')}
                   title={row.status === 'active' ? 'Deactivate' : 'Activate'}
                 >
                   {row.status === 'active' ? 'Deactivate' : 'Activate'}
                 </button>
                 <button
-                  onClick={() => handleDeleteOwner(row.id)}
+                  onClick={() => handleDeleteOwner(row)}
                   className={`${iconButtonClass} hover:bg-rose-50 hover:text-rose-600`}
                   title="Delete"
                 >

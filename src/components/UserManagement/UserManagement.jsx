@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   Search,
   Plus,
@@ -12,39 +12,84 @@ import {
 import Table from '../common/Table';
 import Button from '../common/Button';
 import UserModal from './UserModal';
-
-const defaultUsers = [
-  {
-    id: 1,
-    name: 'John Doe',
-    email: 'john@example.com',
-    role: 'Admin',
-    status: 'active',
-    joinDate: '2024-01-10'
-  },
-  {
-    id: 2,
-    name: 'Jane Smith',
-    email: 'jane@example.com',
-    role: 'Operator',
-    status: 'active',
-    joinDate: '2024-02-15'
-  },
-  {
-    id: 3,
-    name: 'Mike Johnson',
-    email: 'mike@example.com',
-    role: 'User',
-    status: 'inactive',
-    joinDate: '2024-03-20'
-  }
-];
+import { getAllUsers, registerUser, updateUser, deleteUser, changeUserRole } from '../../api/users.js';
 
 const UserManagement = ({ users: initialUsers, handleEdit, handleDelete }) => {
-  const [users, setUsers] = useState(initialUsers || defaultUsers);
+  const [users, setUsers] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+      loadUsers();
+    }, []);
+
+    const loadUsers = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllUsers();
+      setUsers(data);
+    } catch (error) {
+      console.error('Failed to load users:', error);
+      // Show error toast/notification
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveUser = async (formData) => {
+    try {
+      if (selectedUser) {
+        // Update existing user
+        await updateUser({
+          id: selectedUser.id,
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone || selectedUser.phone
+        });
+        
+        // If role changed, update role separately
+        if (formData.role !== selectedUser.role) {
+          await changeUserRole(selectedUser.id, formData.role);
+        }
+      } else {
+        // Create new user - need password and additional fields
+        await registerUser({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password || 'DefaultPassword123!', // You should add password field to modal
+          nic: formData.nic || '',
+          phone: formData.phone || '',
+          role: formData.role
+        });
+      }
+      
+      await loadUsers(); // Reload the list
+      setIsModalOpen(false);
+      setSelectedUser(null);
+      // Show success toast/notification
+    } catch (error) {
+      console.error('Failed to save user:', error);
+      // Show error toast/notification with error.message
+    }
+  };
+
+  // Handle delete
+  const handleDeleteUser = async (userId) => {
+    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    
+    try {
+      await deleteUser(userId);
+      await loadUsers();
+      // Show success toast/notification
+    } catch (error) {
+      console.error('Failed to delete user:', error);
+      alert('Failed to delete user: ' + error.message);
+    }
+  };
+
+
 
   const columns = useMemo(
     () => [
@@ -76,7 +121,7 @@ const UserManagement = ({ users: initialUsers, handleEdit, handleDelete }) => {
         render: (row) => {
           const roleStyles = {
             Admin: 'border-purple-200 bg-purple-50 text-purple-700',
-            Operator: 'border-blue-200 bg-blue-50 text-blue-700',
+            StationOperator: 'border-blue-200 bg-blue-50 text-blue-700',
             User: 'border-slate-200 bg-slate-50 text-slate-700'
           };
           return (
@@ -92,23 +137,33 @@ const UserManagement = ({ users: initialUsers, handleEdit, handleDelete }) => {
       },
       {
         header: 'Status',
-        accessor: 'status',
+        accessor: 'isActive',
         render: (row) => (
           <span
             className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${
-              row.status === 'active'
+              row.isActive
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
                 : 'border-rose-200 bg-rose-50 text-rose-700'
             }`}
           >
-            {row.status}
+            {row.isActive ? 'Deactivate' : 'Activate'}
           </span>
         )
       },
       {
         header: 'Join Date',
-        accessor: 'joinDate',
-        render: (row) => <span className="text-sm text-slate-600">{row.joinDate}</span>
+        accessor: 'createdAt',
+        render: (row) => {
+          if (!row.createdAt) return <span className="text-sm text-slate-600">-</span>;
+          
+          const date = new Date(row.createdAt);
+          const formattedDate = date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          });
+          return <span className="text-sm text-slate-600">{formattedDate}</span>;
+        }
       }
     ],
     []
@@ -124,8 +179,8 @@ const UserManagement = ({ users: initialUsers, handleEdit, handleDelete }) => {
     [users, searchTerm]
   );
 
-  const activeUsers = users.filter((u) => u.status === 'active').length;
-  const inactiveUsers = users.filter((u) => u.status === 'inactive').length;
+  const activeUsers = users.filter((u) => u.isActive === true).length;
+  const inactiveUsers = users.filter((u) => u.isActive === false).length;
   const adminUsers = users.filter((u) => u.role === 'Admin').length;
 
   const statCards = useMemo(
@@ -174,46 +229,10 @@ const UserManagement = ({ users: initialUsers, handleEdit, handleDelete }) => {
     setUsers((prev) =>
       prev.map((user) =>
         user.id === userId
-          ? { ...user, status: user.status === 'active' ? 'inactive' : 'active' }
+          ? { ...user, isActive: !user.isActive }
           : user
       )
     );
-  };
-
-  const handleDeleteUser = (userId) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      setUsers((prev) => prev.filter((user) => user.id !== userId));
-      handleDelete && handleDelete(userId);
-    }
-  };
-
-  const handleSaveUser = (userData) => {
-    if (selectedUser) {
-      setUsers((prev) =>
-        prev.map((user) =>
-          user.id === selectedUser.id
-            ? {
-                ...userData,
-                id: selectedUser.id,
-                joinDate: selectedUser.joinDate
-              }
-            : user
-        )
-      );
-      handleEdit && handleEdit(userData);
-    } else {
-      setUsers((prev) => [
-        ...prev,
-        {
-          ...userData,
-          id: Date.now(),
-          status: userData.status || 'active',
-          joinDate: new Date().toISOString().split('T')[0]
-        }
-      ]);
-    }
-    setIsModalOpen(false);
-    setSelectedUser(null);
   };
 
   const iconButtonClass =
@@ -298,39 +317,44 @@ const UserManagement = ({ users: initialUsers, handleEdit, handleDelete }) => {
               />
             </div>
           </div>
-
-          <Table
-            columns={columns}
-            data={filteredUsers}
-            actions={(row) => (
-              <div className="flex items-center justify-end gap-2">
-                <button
-                  onClick={() => {
-                    setSelectedUser(row);
-                    setIsModalOpen(true);
-                  }}
-                  className={`${iconButtonClass} hover:text-blue-600`}
-                  title="Edit"
-                >
-                  <Edit2 className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => handleToggleStatus(row.id)}
-                  className={statusButtonClass(row.status === 'active')}
-                  title={row.status === 'active' ? 'Deactivate' : 'Activate'}
-                >
-                  {row.status === 'active' ? 'Deactivate' : 'Activate'}
-                </button>
-                <button
-                  onClick={() => handleDeleteUser(row.id)}
-                  className={`${iconButtonClass} hover:bg-rose-50 hover:text-rose-600`}
-                  title="Delete"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            )}
-          />
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="text-slate-500">Loading users...</div>
+            </div>
+          ) : (
+            <Table
+              columns={columns}
+              data={filteredUsers}
+              actions={(row) => (
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedUser(row);
+                      setIsModalOpen(true);
+                    }}
+                    className={`${iconButtonClass} hover:text-blue-600`}
+                    title="Edit"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handleToggleStatus(row.id)}
+                    className={statusButtonClass(row.isActive)}
+                    title={row.status === 'active' ? 'Deactivate' : 'Activate'}
+                  >
+                    {row.status === 'active' ? 'Deactivate' : 'Activate'}
+                  </button>
+                  <button
+                    onClick={() => handleDeleteUser(row.id)}
+                    className={`${iconButtonClass} hover:bg-rose-50 hover:text-rose-600`}
+                    title="Delete"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+            />
+          )}
         </section>
       </div>
 

@@ -11,12 +11,14 @@ function authHeaders() {
 export async function registerUser({ name, email, password, nic, phone, role }) {
   const res = await fetch(`${BASE_URL}/auth/register`, {
     method: "POST",
-    headers: authHeaders(),
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({ name, email, password, nic, phone, role }),
   });
   const data = await res.json();
   if (!res.ok || data.success === false) throw new Error(data.message || "Register failed");
-  return data.user; // backend returns {success,message,user,token}
+  return data; // Return full response with token
 }
 
 export async function getAllUsers() {
