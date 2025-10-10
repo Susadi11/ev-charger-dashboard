@@ -1,9 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { QrCode, Calendar, Clock, MapPin, CheckCircle, Download, Share, X } from 'lucide-react';
+import { getReservationById } from '../../api/bookingApi.js';
 
 const ReservationSummary = ({ reservation, onClose }) => {
   const [qrCodeData, setQrCodeData] = useState('');
+  const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (!reservation && reservationId) {
+      loadReservation();
+    }
+  }, [reservationId]);
+
+
+  const loadReservation = async () => {
+    try {
+      setLoading(true);
+      const data = await getReservationById(reservationId);
+      setReservation(data);
+    } catch (error) {
+      console.error('Error loading reservation:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => {
     if (reservation) {
       // Generate QR code data (in a real app, this would be a unique reservation code)

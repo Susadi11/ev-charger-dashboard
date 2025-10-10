@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, MapPin, Filter, Search, Eye, Trash2, X } from 'lucide-react';
-import reservationService from '../../services/reservationService';
+import { 
+  getAllReservations, 
+  getUserPendingBookings, 
+  cancelReservation 
+} from '../../api/bookingApi.js';
+import { getAvailableStations } from '../../api/stationsApi';
 
 const ReservationList = ({ onViewSummary, refreshTrigger }) => {
   const [reservations, setReservations] = useState([]);
@@ -20,8 +25,19 @@ const ReservationList = ({ onViewSummary, refreshTrigger }) => {
   const loadReservations = async () => {
     try {
       setLoading(true);
-      const data = await reservationService.getReservations();
-      setReservations(data);
+      
+      // Option 1: Get all reservations (if you have admin access)
+      const data = await getAllReservations();
+      
+      // Option 2: Get user-specific reservations (if you have userId)
+      // const userId = localStorage.getItem('userId'); // or get from your auth context
+      // const data = await getUserPendingBookings(userId);
+      
+      if (Array.isArray(data)) {
+        setReservations(data);
+      } else {
+        setReservations([]);
+      }
     } catch (error) {
       console.error('Error loading reservations:', error);
       setError('Failed to load reservations. Please try again.');
@@ -32,8 +48,10 @@ const ReservationList = ({ onViewSummary, refreshTrigger }) => {
 
   const loadStations = async () => {
     try {
-      const stations = await reservationService.getAvailableStations();
-      setAvailableStations(stations);
+      const result = await getAvailableStations();
+      if (result.success && result.data) {
+        setAvailableStations(result.data);
+      }
     } catch (error) {
       console.error('Error loading stations:', error);
     }
@@ -45,11 +63,11 @@ const ReservationList = ({ onViewSummary, refreshTrigger }) => {
     }
 
     try {
-      await reservationService.cancelReservation(id);
-      await loadReservations();
+      await cancelReservation(id);
+      await loadReservations(); // Reload the list
     } catch (error) {
       console.error('Error cancelling reservation:', error);
-      alert('Failed to cancel reservation. Please try again.');
+      alert(error.message || 'Failed to cancel reservation. Please try again.');
     }
   };
 

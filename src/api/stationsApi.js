@@ -1,4 +1,4 @@
-const BASE_URL = "https://ev-charging-backend-it22055026.azurewebsites.net/api";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 /**
  * Helper function to get authorization headers

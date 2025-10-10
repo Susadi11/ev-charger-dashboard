@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, MapPin, Users, Shield } from 'lucide-react';
 import ReservationList from '../../components/booking/ReservationList';
 import ReservationSummary from '../../components/booking/ReservationSummary';
-import reservationService from '../../services/reservationService';
+import { getAllReservations } from '../../api/bookingApi';
 
 const BookingsPage = () => {
   const [showSummary, setShowSummary] = useState(false);
@@ -21,14 +21,17 @@ const BookingsPage = () => {
 
   const loadStats = async () => {
     try {
-      const reservations = await reservationService.getReservations();
+      const reservations = await getAllReservations();
+      
+      // Handle if the API returns an array directly or wrapped in an object
+      const reservationList = Array.isArray(reservations) ? reservations : reservations.data || [];
       const now = new Date();
       
       const stats = {
-        total: reservations.length,
-        upcoming: reservations.filter(r => new Date(r.startTime) > now && r.status !== 'Cancelled').length,
-        completed: reservations.filter(r => new Date(r.endTime) < now && r.status === 'Confirmed').length,
-        cancelled: reservations.filter(r => r.status === 'Cancelled').length
+        total: reservationList.length,
+        upcoming: reservationList.filter(r => new Date(r.startTime) > now && r.status !== 'Cancelled').length,
+        completed: reservationList.filter(r => new Date(r.endTime) < now && r.status === 'Confirmed').length,
+        cancelled: reservationList.filter(r => r.status === 'Cancelled').length
       };
       
       setStats(stats);

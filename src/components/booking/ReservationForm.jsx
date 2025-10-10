@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, MapPin, AlertCircle, CheckCircle } from 'lucide-react';
-import reservationService from '../../services/reservationService';
+import { createReservation, updateReservation } from '../../api/bookingApi.js';
+import { getAvailableStations } from '../../api/stationsApi';
 
 const ReservationForm = ({ onReservationCreated, onCancel, editReservation = null }) => {
   const [formData, setFormData] = useState({
@@ -32,8 +33,14 @@ const ReservationForm = ({ onReservationCreated, onCancel, editReservation = nul
   const loadStations = async () => {
     try {
       setLoading(true);
-      const availableStations = await reservationService.getAvailableStations();
-      setStations(availableStations);
+      const result = await getAvailableStations();
+      
+      // Handle the response structure { success, data, message }
+      if (result.success && result.data) {
+        setStations(result.data);
+      } else {
+        setStations([]);
+      }
     } catch (error) {
       console.error('Error loading stations:', error);
       setErrors({ general: 'Failed to load stations. Please try again.' });
@@ -98,21 +105,30 @@ const ReservationForm = ({ onReservationCreated, onCancel, editReservation = nul
 
     setIsSubmitting(true);
     try {
+      // Prepare the payload
+      const reservationPayload = {
+        chargingStationId: formData.stationId,
+        startTime: new Date(formData.startTime).toISOString(),
+        endTime: new Date(formData.endTime).toISOString(),
+      };
+
       if (editReservation) {
         // Update existing reservation
-        await reservationService.updateReservation(editReservation.id, {
-          startTime: formData.startTime,
-          endTime: formData.endTime,
+        await updateReservation(editReservation.id, {
+          startTime: reservationPayload.startTime,
+          endTime: reservationPayload.endTime,
         });
       } else {
         // Create new reservation
-        await reservationService.createReservation(formData);
+        await createReservation(reservationPayload);
       }
       
       onReservationCreated?.();
     } catch (error) {
       console.error('Error saving reservation:', error);
-      setErrors({ general: 'Failed to save reservation. Please try again.' });
+      setErrors({ 
+        general: error.message || 'Failed to save reservation. Please try again.' 
+      });
     } finally {
       setIsSubmitting(false);
     }

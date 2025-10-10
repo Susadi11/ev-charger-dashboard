@@ -13,7 +13,7 @@ import ReportsPage from './pages/Reports/ReportsPage';
 import LoginPage from './components/common/LoginPage';
 import SignUpPage from './components/common/SignUpPage';
 import { SessionProvider } from './context/SessionContext';
-import './utils/apiTest'; // Import API test utilities
+// import './utils/apiTest'; // Import API test utilities
 import './style.css';
 
 function App() {

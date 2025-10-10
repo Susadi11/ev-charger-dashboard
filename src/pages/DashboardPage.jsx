@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { getAllStations } from '../api/stationsApi.js';
 import { getAllEVOwners } from '../api/evOwnerApi.js';
-import { getAllReservations } from '../api/reservationApi.js';
+import { getAllReservations } from '../api/bookingApi.js';
 import { getAllUsers } from '../api/authApi.js';
 
 const DashboardPage = () => {
