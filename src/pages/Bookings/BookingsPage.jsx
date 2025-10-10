@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, Users, Shield } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Shield, Plus } from 'lucide-react';
 import ReservationList from '../../components/booking/ReservationList';
 import ReservationSummary from '../../components/booking/ReservationSummary';
 import { getAllReservations } from '../../api/bookingApi';
+import Button from '../../components/common/Button';
 
 const BookingsPage = () => {
   const [showSummary, setShowSummary] = useState(false);
@@ -59,9 +60,14 @@ const BookingsPage = () => {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Reservation Management</h1>
             <p className="text-gray-600">Monitor and manage EV charging station reservations</p>
           </div>
-          <div className="mt-4 sm:mt-0 flex items-center px-4 py-2 bg-blue-50 rounded-2xl">
-            <Shield className="w-5 h-5 text-blue-600 mr-2" />
-            <span className="text-sm font-medium text-blue-700">Operator View</span>
+          <div>
+             <Button
+              icon={<Plus size={18} />}
+              className="self-start md:self-auto"
+              // disabled={actionLoading}
+            >
+              Add Resevation
+            </Button>
           </div>
         </div>
 
