@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { loginApi } from "../../api/loginApi.js";
+import { loginApi } from "../../api/authApi.js";
 
 const LoginPage = ({ onLogin, onSwitchToSignUp }) => {
   const [email, setEmail] = useState('');
