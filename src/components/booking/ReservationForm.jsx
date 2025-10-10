@@ -172,7 +172,7 @@ const ReservationForm = ({ onReservationCreated, onCancel, editReservation = nul
             <option value="">Select a station</option>
             {stations.map((station) => (
               <option key={station.id} value={station.id}>
-                {station.name} - {station.location} ({station.chargingSpeed})
+                {station.name} - {station.location} ({station.chargingSpeed}) - {station.availableSlots || 'N/A'} slots available
               </option>
             ))}
           </select>

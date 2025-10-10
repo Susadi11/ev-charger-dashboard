@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   Search,
   Plus,
@@ -13,75 +13,7 @@ import StationModal from '../../components/StationManagement/StationModal';
 import StationDetailsView from '../../components/StationManagement/StationDetailsView';
 import Table from '../../components/common/Table';
 import Button from '../../components/common/Button';
-
-const initialStations = [
-  {
-    id: 1,
-    name: 'Downtown Charging Hub',
-    location: 'Colombo',
-    address: 'Main Street, Colombo 01',
-    type: 'DC',
-    slots: 6,
-    available: 4,
-    status: 'operational',
-    latitude: '6.9271',
-    longitude: '79.8612',
-    operatingHours: { open: '00:00', close: '23:59' },
-    schedule: {
-      monday: true,
-      tuesday: true,
-      wednesday: true,
-      thursday: true,
-      friday: true,
-      saturday: true,
-      sunday: true
-    }
-  },
-  {
-    id: 2,
-    name: 'Airport Station',
-    location: 'Katunayake',
-    address: 'Bandaranaike International Airport',
-    type: 'AC',
-    slots: 4,
-    available: 2,
-    status: 'operational',
-    latitude: '7.1807',
-    longitude: '79.8841',
-    operatingHours: { open: '06:00', close: '22:00' },
-    schedule: {
-      monday: true,
-      tuesday: true,
-      wednesday: true,
-      thursday: true,
-      friday: true,
-      saturday: true,
-      sunday: false
-    }
-  },
-  {
-    id: 3,
-    name: 'Mall Parking',
-    location: 'One Galle Face',
-    address: 'One Galle Face Mall, Colombo 02',
-    type: 'Both',
-    slots: 8,
-    available: 0,
-    status: 'maintenance',
-    latitude: '6.9318',
-    longitude: '79.8434',
-    operatingHours: { open: '10:00', close: '22:00' },
-    schedule: {
-      monday: true,
-      tuesday: true,
-      wednesday: true,
-      thursday: true,
-      friday: true,
-      saturday: true,
-      sunday: true
-    }
-  }
-];
+import stationsApi, { transformFormDataToApi } from '../../api/stationsApi';
 
 const statusStyles = {
   operational: 'border-emerald-200 bg-emerald-50 text-emerald-700',
@@ -96,13 +28,67 @@ const typeStyles = {
 };
 
 const StationsPage = () => {
-  const [stations, setStations] = useState(initialStations);
+  const [stations, setStations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedStation, setSelectedStation] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState(null);
+
+  // Load stations from API on component mount
+  useEffect(() => {
+    loadStations();
+  }, []);
+
+  const loadStations = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await stationsApi.getAllStations();
+      
+      if (response.success && response.data) {
+        // Transform backend station data to frontend format
+        const transformedStations = response.data.map((backendStation) => ({
+          id: backendStation.id,
+          name: backendStation.name,
+          location: backendStation.address.split(',')[0] || 'Unknown Location',
+          address: backendStation.address,
+          type: backendStation.type,
+          slots: backendStation.totalSlots,
+          available: backendStation.availableSlots,
+          status: backendStation.isActive ? 'operational' : 'offline',
+          latitude: backendStation.latitude?.toString(),
+          longitude: backendStation.longitude?.toString(),
+          operatingHours: { open: '00:00', close: '23:59' },
+          schedule: {
+            monday: true,
+            tuesday: true,
+            wednesday: true,
+            thursday: true,
+            friday: true,
+            saturday: true,
+            sunday: true
+          }
+        }));
+        
+        setStations(transformedStations);
+      } else {
+        throw new Error('Failed to load stations');
+      }
+    } catch (error) {
+      console.error('Error loading stations:', error);
+      setError('Failed to load stations. Please try again.');
+      setStations([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const stats = useMemo(
     () => ({
@@ -199,43 +185,125 @@ const StationsPage = () => {
     []
   );
 
-  const handleSaveStation = (stationData) => {
-    if (selectedStation) {
-      setStations((prev) =>
-        prev.map((station) =>
-          station.id === selectedStation.id
-            ? {
-                ...stationData,
-                id: selectedStation.id,
-                available: selectedStation.available
-              }
-            : station
-        )
-      );
-    } else {
-      const newStation = {
-        ...stationData,
-        id: Date.now(),
-        available: stationData.slots
-      };
-      setStations((prev) => [...prev, newStation]);
-    }
+  /**
+   * Save station - CREATE or UPDATE
+   * Makes API call first, then updates local state
+   */
+  const handleSaveStation = async (stationData) => {
+    try {
+      setActionLoading(true);
+      setActionError(null);
 
-    setIsModalOpen(false);
-    setSelectedStation(null);
+      if (selectedStation) {
+        // UPDATE existing station
+        const updatePayload = transformFormDataToApi(stationData);
+        const response = await stationsApi.updateStation(selectedStation.id, updatePayload);
+
+        if (response.success) {
+          // Update local state with new data
+          setStations((prev) =>
+            prev.map((station) =>
+              station.id === selectedStation.id
+                ? {
+                    ...station,
+                    name: stationData.name,
+                    location: stationData.location,
+                    address: stationData.address,
+                    type: stationData.type,
+                    slots: stationData.slots,
+                    status: stationData.status,
+                    latitude: stationData.latitude,
+                    longitude: stationData.longitude,
+                    operatingHours: stationData.operatingHours,
+                    schedule: stationData.schedule
+                  }
+                : station
+            )
+          );
+
+          console.log('Station updated successfully');
+        } else {
+          throw new Error(response.message || 'Failed to update station');
+        }
+      } else {
+        // CREATE new station
+        const createPayload = transformFormDataToApi(stationData);
+        const response = await stationsApi.createStation(createPayload);
+
+        if (response.success && response.data) {
+          // Transform and add new station to state
+          const newBackendStation = response.data;
+          const newStation = {
+            id: newBackendStation.id,
+            name: newBackendStation.name,
+            location: newBackendStation.address.split(',')[0] || 'Unknown Location',
+            address: newBackendStation.address,
+            type: newBackendStation.type,
+            slots: newBackendStation.totalSlots,
+            available: newBackendStation.availableSlots,
+            status: newBackendStation.isActive ? 'operational' : 'offline',
+            latitude: newBackendStation.latitude?.toString(),
+            longitude: newBackendStation.longitude?.toString(),
+            operatingHours: { open: '00:00', close: '23:59' },
+            schedule: {
+              monday: true,
+              tuesday: true,
+              wednesday: true,
+              thursday: true,
+              friday: true,
+              saturday: true,
+              sunday: true
+            }
+          };
+
+          setStations((prev) => [...prev, newStation]);
+          console.log('Station created successfully');
+        } else {
+          throw new Error(response.message || 'Failed to create station');
+        }
+      }
+
+      setIsModalOpen(false);
+      setSelectedStation(null);
+    } catch (err) {
+      console.error('Error saving station:', err);
+      setActionError(err.message || 'Failed to save station. Please try again.');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  const handleDeleteStation = (stationId) => {
+  /**
+   * Delete station
+   * Makes API call first, then updates local state
+   */
+  const handleDeleteStation = async (stationId) => {
     const station = stations.find((s) => s.id === stationId);
-    const hasActiveBookings = station.available < station.slots;
 
-    if (hasActiveBookings) {
-      alert('Cannot delete station with active bookings. Please cancel all bookings first.');
+    if (!station) return;
+
+    if (!window.confirm(`Are you sure you want to delete "${station.name}"?`)) {
       return;
     }
 
-    if (window.confirm(`Are you sure you want to delete "${station.name}"?`)) {
-      setStations((prev) => prev.filter((s) => s.id !== stationId));
+    try {
+      setActionLoading(true);
+      setActionError(null);
+
+      const response = await stationsApi.deleteStation(stationId);
+
+      if (response.success) {
+        // Remove from local state
+        setStations((prev) => prev.filter((s) => s.id !== stationId));
+        console.log('Station deleted successfully');
+      } else {
+        throw new Error(response.message || 'Failed to delete station');
+      }
+    } catch (err) {
+      console.error('Error deleting station:', err);
+      setActionError(err.message || 'Failed to delete station. Please try again.');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -255,7 +323,61 @@ const StationsPage = () => {
   };
 
   const iconButtonClass =
-    'inline-flex h-9 w-9 items-center justify-center rounded-xl text-gray-400 transition-all duration-200 hover:bg-gray-100';
+    'inline-flex h-9 w-9 items-center justify-center rounded-xl text-gray-400 transition-all duration-200 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed';
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="mx-auto flex max-w-7xl flex-col gap-8">
+          <section className="rounded-3xl border border-gray-100 bg-white/70 p-6 shadow-sm backdrop-blur">
+            <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+              <div>
+                <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+                  Station Management
+                </h1>
+                <p className="mt-2 text-sm text-slate-500">
+                  Monitor availability, status changes, and keep your network refined.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-center py-12">
+              <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin"></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="mx-auto flex max-w-7xl flex-col gap-8">
+          <section className="rounded-3xl border border-gray-100 bg-white/70 p-6 shadow-sm backdrop-blur">
+            <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+              <div>
+                <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+                  Station Management
+                </h1>
+                <p className="mt-2 text-sm text-slate-500">
+                  Monitor availability, status changes, and keep your network refined.
+                </p>
+              </div>
+            </div>
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
+              <p className="text-red-700 mb-4">{error}</p>
+              <button
+                onClick={loadStations}
+                className="bg-red-100 text-red-800 px-4 py-2 rounded-xl hover:bg-red-200 transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -270,10 +392,22 @@ const StationsPage = () => {
                 Monitor availability, status changes, and keep your network refined.
               </p>
             </div>
-            <Button onClick={handleAddClick} icon={<Plus size={18} />} className="self-start md:self-auto">
+            <Button
+              onClick={handleAddClick}
+              icon={<Plus size={18} />}
+              className="self-start md:self-auto"
+              disabled={actionLoading}
+            >
               Add Station
             </Button>
           </div>
+
+          {/* Action error message */}
+          {actionError && (
+            <div className="mt-4 bg-red-50 border border-red-200 rounded-2xl p-4">
+              <p className="text-red-700 text-sm">{actionError}</p>
+            </div>
+          )}
 
           <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
@@ -387,15 +521,17 @@ const StationsPage = () => {
               <div className="flex items-center justify-end gap-2">
                 <button
                   onClick={() => handleViewClick(row)}
-                  className={`${iconButtonClass} hover:text-blue-600`}
+                  className={`${iconButtonClass}`}
                   title="View details"
+                  disabled={actionLoading}
                 >
                   <Eye className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => handleEditClick(row)}
-                  className={`${iconButtonClass} hover:text-emerald-600`}
+                  className={`${iconButtonClass}`}
                   title="Edit station"
+                  disabled={actionLoading}
                 >
                   <Edit2 className="h-4 w-4" />
                 </button>
@@ -403,6 +539,7 @@ const StationsPage = () => {
                   onClick={() => handleDeleteStation(row.id)}
                   className={`${iconButtonClass} hover:bg-rose-50 hover:text-rose-600`}
                   title="Delete station"
+                  disabled={actionLoading}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>

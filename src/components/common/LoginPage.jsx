@@ -30,6 +30,11 @@ const LoginPage = ({ onLogin, onSwitchToSignUp }) => {
       // data = { message, user, token }
       localStorage.setItem("auth_token", data.token);
       localStorage.setItem("auth_user", JSON.stringify(data.user));
+      
+      // Store user NIC for reservation API
+      if (data.user?.nic) {
+        localStorage.setItem("user_nic", data.user.nic);
+      }
 
       // If parent needs it:
       if (typeof onLogin === "function") {

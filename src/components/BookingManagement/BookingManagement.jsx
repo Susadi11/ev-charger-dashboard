@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Plus, Edit2, Zap, User } from 'lucide-react';
 import Table from '../common/Table';
 import Button from '../common/Button';
 import BookingModal from './BookingModal';
+import reservationService from '../../services/reservationService';
 
 const calculateDuration = (start, end) => {
   const startMinutes = parseInt(start.split(':')[0]) * 60 + parseInt(start.split(':')[1]);
@@ -14,17 +15,57 @@ const calculateDuration = (start, end) => {
 };
 
 const BookingManagement = ({ bookings: initialBookings, handleCancel, filter: initialFilter }) => {
-  const [bookings, setBookings] = useState(initialBookings || [
-    { id: 1, stationName: 'Downtown Charging Hub', ownerName: 'Rajesh Kumar', date: '2025-10-10', startTime: '09:00', endTime: '11:00', duration: '2h', status: 'confirmed' },
-    { id: 2, stationName: 'Airport Station', ownerName: 'Nimal Silva', date: '2025-10-11', startTime: '14:00', endTime: '15:30', duration: '1.5h', status: 'pending' },
-    { id: 3, stationName: 'Mall Parking', ownerName: 'Priya Fernando', date: '2025-10-09', startTime: '10:00', endTime: '12:00', duration: '2h', status: 'completed' },
-    { id: 4, stationName: 'Downtown Charging Hub', ownerName: 'John Doe', date: '2025-10-08', startTime: '08:00', endTime: '09:00', duration: '1h', status: 'canceled' }
-  ]);
-  
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [filter, setFilter] = useState(initialFilter || 'all');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Load bookings from API on component mount
+  useEffect(() => {
+    loadBookings();
+  }, []);
+
+  const loadBookings = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Try to get all reservations (admin view) or user reservations
+      const reservations = await reservationService.getAllReservations();
+      
+      // Transform reservation data to booking format
+      const transformedBookings = reservations.map(reservation => {
+        const startDate = new Date(reservation.startTime);
+        const endDate = new Date(reservation.endTime);
+        const duration = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60));
+        
+        return {
+          id: reservation.id,
+          stationName: reservation.stationName || 'Unknown Station',
+          ownerName: reservation.nic || 'Unknown User',
+          date: startDate.toISOString().split('T')[0],
+          startTime: startDate.toTimeString().slice(0, 5),
+          endTime: endDate.toTimeString().slice(0, 5),
+          duration: `${duration}h`,
+          status: reservation.status.toLowerCase()
+        };
+      });
+      
+      setBookings(transformedBookings);
+    } catch (error) {
+      console.error('Error loading bookings:', error);
+      setError('Failed to load bookings. Please try again.');
+      // Fallback to initial bookings if provided
+      if (initialBookings) {
+        setBookings(initialBookings);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
   
   const columns = [
     { 
@@ -84,6 +125,40 @@ const BookingManagement = ({ bookings: initialBookings, handleCancel, filter: in
       booking.ownerName.toLowerCase().includes(searchTerm.toLowerCase())
     );
   
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Booking Management</h1>
+          <p className="text-gray-600">Monitor and manage charging station reservations</p>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Booking Management</h1>
+          <p className="text-gray-600">Monitor and manage charging station reservations</p>
+        </div>
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
+          <p className="text-red-700 mb-4">{error}</p>
+          <button
+            onClick={loadBookings}
+            className="bg-red-100 text-red-800 px-4 py-2 rounded-xl hover:bg-red-200 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -132,9 +207,17 @@ const BookingManagement = ({ bookings: initialBookings, handleCancel, filter: in
             <div className="flex justify-end space-x-2">
               {row.status === 'confirmed' && (
                 <button
-                  onClick={() => {
-                    setBookings(bookings.map(b => b.id === row.id ? { ...b, status: 'canceled' } : b));
-                    handleCancel && handleCancel(row.id);
+                  onClick={async () => {
+                    if (window.confirm('Are you sure you want to cancel this booking?')) {
+                      try {
+                        await reservationService.cancelReservation(row.id);
+                        await loadBookings(); // Reload bookings after cancellation
+                        handleCancel && handleCancel(row.id);
+                      } catch (error) {
+                        console.error('Error cancelling booking:', error);
+                        alert('Failed to cancel booking. Please try again.');
+                      }
+                    }
                   }}
                   className="px-3 py-1 text-xs font-medium rounded bg-red-100 text-red-700 hover:bg-red-200"
                 >
@@ -156,12 +239,29 @@ const BookingManagement = ({ bookings: initialBookings, handleCancel, filter: in
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         booking={selectedBooking}
-        onSave={(bookingData) => {
-          if (selectedBooking) {
-            setBookings(bookings.map(b => b.id === selectedBooking.id ? { ...bookingData, id: selectedBooking.id } : b));
-          } else {
-            const duration = calculateDuration(bookingData.startTime, bookingData.endTime);
-            setBookings([...bookings, { ...bookingData, id: Date.now(), duration }]);
+        onSave={async (bookingData) => {
+          try {
+            if (selectedBooking) {
+              // Update existing booking
+              await reservationService.updateReservation(selectedBooking.id, {
+                startTime: `${bookingData.date}T${bookingData.startTime}:00Z`,
+                endTime: `${bookingData.date}T${bookingData.endTime}:00Z`,
+              });
+            } else {
+              // Create new booking
+              await reservationService.createReservation({
+                stationId: bookingData.stationId,
+                startTime: `${bookingData.date}T${bookingData.startTime}:00Z`,
+                endTime: `${bookingData.date}T${bookingData.endTime}:00Z`,
+              });
+            }
+            
+            // Reload bookings after save
+            await loadBookings();
+            setIsModalOpen(false);
+          } catch (error) {
+            console.error('Error saving booking:', error);
+            alert('Failed to save booking. Please try again.');
           }
         }}
       />
